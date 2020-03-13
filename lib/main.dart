@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'quiz_box.dart';
 import 'sound_box.dart';
+import 'score_keeper.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 
 void main() => runApp(Quizzler());
@@ -30,17 +31,17 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  List<Icon> scoreKeeper = [];
-
   static QuizBox quizBox;
   static SoundBox soundBox;
+  static ScoreKeeper scoreKeeper;
   _QuizPageState() {
     quizBox = QuizBox();
     soundBox = SoundBox();
+    scoreKeeper = ScoreKeeper();
   }
 
-  void answerPick(bool anwser) {
-    bool state = anwser == quizBox.getAnswer();
+  void answerPick(bool answer) {
+    bool state = answer == quizBox.getAnswer();
     if (state) {
       soundBox.playSuccess();
     } else {
@@ -48,26 +49,69 @@ class _QuizPageState extends State<QuizPage> {
     }
     setState(() {
       if (state) {
-        scoreKeeper.add(Icon(Icons.check, color: Colors.green));
+        scoreKeeper.countCorrect();
       } else {
-        scoreKeeper.add(Icon(Icons.close, color: Colors.red));
+        scoreKeeper.countWrong();
+      }
+
+      if (quizBox.isLast()) {
+        Alert(
+            style: AlertStyle(isOverlayTapDismiss: false, isCloseButton: false),
+            context: context,
+            title: 'Finished!',
+            content: getFinishContent(),
+            closeFunction: resetQuiz,
+            buttons: [getFinishButton()]).show();
       }
       quizBox.nextQuestion();
     });
+  }
 
-    if (quizBox.isLast()) {
-      Alert(
-          context: context,
-          title: 'Finished!',
-          desc: 'You\'ve reached the end of the quiz.',
-          closeFunction: () => {}).show();
-      resetQuiz();
-    }
+  Widget getFinishContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'You\'ve reached the end of the quiz.',
+          style: AlertStyle().descStyle,
+          textAlign: TextAlign.center,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.check, color: Colors.green),
+            Text(scoreKeeper.getCorrect().toString()),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.close, color: Colors.red),
+            Text(scoreKeeper.getWrong().toString()),
+          ],
+        )
+      ],
+    );
+  }
+
+  DialogButton getFinishButton() {
+    return DialogButton(
+      child: Text(
+        "CANCEL",
+        style: TextStyle(color: Colors.white, fontSize: 20),
+      ),
+      onPressed: cancelButtonPress,
+    );
+  }
+
+  void cancelButtonPress() {
+    resetQuiz();
+    Navigator.pop(context);
   }
 
   void resetQuiz() {
     setState(() {
-      scoreKeeper.clear();
+      scoreKeeper.resetScore();
       quizBox.reset();
     });
   }
@@ -134,10 +178,22 @@ class _QuizPageState extends State<QuizPage> {
           ),
         ),
         Row(
-          children: scoreKeeper,
+          children: buildScore(scoreKeeper.getScores()),
         )
       ],
     );
+  }
+
+  List<Icon> buildScore(List<bool> scores) {
+    List<Icon> icons = [];
+    for (bool score in scores) {
+      if (score) {
+        icons.add(Icon(Icons.check, color: Colors.green));
+      } else {
+        icons.add(Icon(Icons.close, color: Colors.red));
+      }
+    }
+    return icons;
   }
 }
 

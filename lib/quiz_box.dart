@@ -45,7 +45,7 @@ class QuizBox {
   }
 
   bool isLast() {
-    return _quizNumber == _questions.length - 1;
+    return _quizNumber >= _questions.length - 1;
   }
 
   void reset() {
