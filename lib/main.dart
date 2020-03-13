@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'quiz_box.dart';
+import 'sound_box.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 void main() => runApp(Quizzler());
 
@@ -21,10 +24,54 @@ class Quizzler extends StatelessWidget {
 
 class QuizPage extends StatefulWidget {
   @override
-  _QuizPageState createState() => _QuizPageState();
+  _QuizPageState createState() {
+    return _QuizPageState();
+  }
 }
 
 class _QuizPageState extends State<QuizPage> {
+  List<Icon> scoreKeeper = [];
+
+  static QuizBox quizBox;
+  static SoundBox soundBox;
+  _QuizPageState() {
+    quizBox = QuizBox();
+    soundBox = SoundBox();
+  }
+
+  void answerPick(bool anwser) {
+    bool state = anwser == quizBox.getAnswer();
+    if (state) {
+      soundBox.playSuccess();
+    } else {
+      soundBox.playFailure();
+    }
+    setState(() {
+      if (state) {
+        scoreKeeper.add(Icon(Icons.check, color: Colors.green));
+      } else {
+        scoreKeeper.add(Icon(Icons.close, color: Colors.red));
+      }
+      quizBox.nextQuestion();
+    });
+
+    if (quizBox.isLast()) {
+      Alert(
+          context: context,
+          title: 'Finished!',
+          desc: 'You\'ve reached the end of the quiz.',
+          closeFunction: () => {}).show();
+      resetQuiz();
+    }
+  }
+
+  void resetQuiz() {
+    setState(() {
+      scoreKeeper.clear();
+      quizBox.reset();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +84,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                quizBox.getQuestion(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -62,6 +109,7 @@ class _QuizPageState extends State<QuizPage> {
               ),
               onPressed: () {
                 //The user picked true.
+                answerPick(true);
               },
             ),
           ),
@@ -80,11 +128,14 @@ class _QuizPageState extends State<QuizPage> {
               ),
               onPressed: () {
                 //The user picked false.
+                answerPick(false);
               },
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          children: scoreKeeper,
+        )
       ],
     );
   }
